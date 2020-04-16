@@ -1,0 +1,17 @@
+<link rel="stylesheet" href="../static/miniVideo.css">
+<div id="video:{{ id }}">
+    <img id="video:{{ id }}" src={{thumbnail}}/>
+
+    <p id="video:{{ id }}">{{ title }}</p>
+    Kanal: {{ channel }}
+</div>
+
+<script>
+    document.addEventListener("click", (evt) => {
+        const profile = document.getElementById("profile");
+        const style = getComputedStyle(profile);
+        if (!(style.visibility === "visible") && evt.target.id.length > 5 && evt.target.id.substring(0,5) === "video"){
+            window.location.href = "/video?video=" + evt.target.id.substring(6);
+        }
+    });
+</script>

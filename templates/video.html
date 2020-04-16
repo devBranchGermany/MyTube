@@ -1,0 +1,182 @@
+<html>
+<meta name="viewport" content="width=device-width" />
+    <head>
+        <link rel="stylesheet" href="../static/video.css">
+        <meta charset="UTF-8">
+        <title>MyTube</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script>
+            function openProfile() {
+                const style = getComputedStyle(document.getElementById("profile"));
+                if (style.visibility === "hidden") {
+                    document.getElementById("profile").style.visibility = "visible";
+                }
+                else {
+                    document.getElementById("profile").style.visibility = "hidden";
+                }
+            }
+
+            document.addEventListener("click", (evt) => {
+                const profile = document.getElementById("profile");
+                const style = getComputedStyle(profile);
+                if (!(style.visibility === "visible") && evt.target.id === "logoButton"){
+                    window.location.href = "/"
+                }
+            });
+
+            {% if not request.user.is_authenticated %}
+                document.addEventListener("click", (evt) => {
+                    const profile = document.getElementById("profile");
+                    let targetElement = evt.target;
+                    if (evt.target.id === "profileImage"){
+                        openProfile();
+                    }else{
+                        const style = getComputedStyle(document.getElementById("profile"));
+                        if (style.visibility === "visible") {
+                            do {
+                                if (targetElement === profile) {
+                                    return;
+                                }
+                                targetElement = targetElement.parentNode;
+                            } while (targetElement);
+                            openProfile()
+                        }
+                    }
+                });
+            {% else %}
+                document.addEventListener("click", (evt) => {
+                    if (evt.target.id === "profileImage"){
+                        window.location.href = "/channel";
+                    }
+                });
+            {% endif %}
+        </script>
+    </head>
+    <body>
+        <div class="navBar">
+            <div class="left">
+                <img src="../static/logo.png" alt="Menu Button" id="logoButton">
+            </div>
+            <div class="center">
+                <input type="text" placeholder="Suche..">
+                <button>Suche</button>
+            </div>
+            <div class="right">
+                {% if profile %}
+                    <img src="../static/profile.png" alt="Profile Picture" id="profileImage">
+                {% endif %}
+            </div>
+        </div>
+        <div class="profile" id="profile">
+            <form method="post">{% csrf_token %}
+                <div class="profileRow">
+                    Benutzername:
+                    <input type="text" name="username">
+                </div>
+                <div class="profileRow">
+                    Password:
+                    <input type="password" name="password">
+                </div>
+                <div class="profileRow">
+                    <input type="submit" name="login" value="Login">
+                </div>
+            </form>
+            <div class="profileRow">
+                Sie sind noch nicht registriert? <br>
+                <button onclick="window.location='/register';" >Registrieren</button>
+            </div>
+        </div>
+        <div class="video">
+            <p>{{ title }}</p>
+            <video width="100%" controls>
+                <source src="{{ videopath }}" type="video/mp4">
+                <source src="{{ videoPath }}" type="video/ogg">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <div class="rating">
+            <div class="left">
+                {{ uploadTime }}<br><br>
+                Kanal: <button onclick="location.href = '/channel?channel={{channel.id}}';">{{ channel.name }}</button>
+            </div>
+            <div class="right">
+                <form method="post" action="" id="form">{% csrf_token %}
+                    <button id="like">&#x1F44D;</button>Likes: <p id="likes">{{ likesNumber }}</p> <br><br>
+                    <button id="dislike">&#x1F44E;</button>Dislikes: <p id="dislikes">{{ dislikesNumber }}</p></p> <br>
+                </form>
+            </div>
+        </div>
+        <div class="comments">
+            Kommentare <br>
+            <form method="post">{% csrf_token %}
+                <textarea name="commentText"></textarea> <br>
+                <input name="comment" value="Senden"
+                {% if not request.user.is_authenticated %}
+                    onclick="alert('Sie müssen sich zum Kommentieren eines Videos zunächst registrieren');" type="button"
+                {% else %}
+                    type="submit"
+                {% endif %}>
+            </form>
+            {% for o in comments %}
+                <div class="comment">
+                    {{o.author}}:<br>
+                    {{o.text}}
+                </div>
+            {% endfor %}
+        </div>
+        <script type="text/javascript">
+            $('#like').click(function(e){
+                e.preventDefault();
+                {% if not request.user.is_authenticated %}
+                    alert('Sie müssen sich zum Bewerten eines Videos zunächst registrieren.')
+                {% else %}
+                    rate(1);
+                {% endif %}
+            });
+
+            $('#dislike').click(function(e){
+                e.preventDefault();
+                {% if not request.user.is_authenticated %}
+                    alert('Sie müssen sich zum Bewerten eines Videos zunächst registrieren.')
+                {% else %}
+                    rate(0);
+                {% endif %}
+            });
+
+            function rate(like) {
+                $.ajax({
+                    url : "/rating", // the endpoint
+                    type : "POST", // http method
+                    data : {
+                        like: like,
+                        videoId: '{{ id }}',
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    }, // data sent with the post request
+
+                    // handle a successful response
+                    success : function(json) {
+                        var likes = document.getElementById('likes');
+                        var dislikes = document.getElementById('dislikes');
+                        likes.innerHTML = json.likes;
+                        dislikes.innerHTML = json.dislikes;
+                    },
+
+                    // handle a non-successful response
+                    error : function(xhr,errmsg,err) {
+
+                    }
+                });
+            }
+
+            var $limitNum = 200;
+            $('textarea[name="commentText"]').keydown(function() {
+                var $this = $(this);
+
+                if ($this.val().length > $limitNum) {
+                    $this.val($this.val().substring(0, $limitNum));
+                }
+            });
+
+        </script>
+    </body>
+</html>

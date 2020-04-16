@@ -1,0 +1,149 @@
+<html>
+<meta name="viewport" content="width=device-width" />
+    <head>
+        <link rel="stylesheet" href="../static/standard.css">
+        <title>MyTube</title>
+        <script>
+            function openProfile() {
+                const style = getComputedStyle(document.getElementById("profile"));
+                if (style.visibility === "hidden") {
+                    document.getElementById("profile").style.visibility = "visible";
+                }
+                else {
+                    document.getElementById("profile").style.visibility = "hidden";
+                }
+            }
+
+            document.addEventListener("click", (evt) => {
+                const profile = document.getElementById("profile");
+                const style = getComputedStyle(profile);
+                if (!(style.visibility === "visible") && evt.target.id === "logoButton"){
+                    window.location.href = "/"
+                }
+            });
+
+            {% if not request.user.is_authenticated %}
+                document.addEventListener("click", (evt) => {
+                    const profile = document.getElementById("profile");
+                    let targetElement = evt.target;
+                    if (evt.target.id === "profileImage"){
+                        openProfile();
+                    }else{
+                        const style = getComputedStyle(document.getElementById("profile"));
+                        if (style.visibility === "visible") {
+                            do {
+                                if (targetElement === profile) {
+                                    return;
+                                }
+                                targetElement = targetElement.parentNode;
+                            } while (targetElement);
+                            openProfile()
+                        }
+                    }
+                });
+            {% else %}
+                document.addEventListener("click", (evt) => {
+                    if (evt.target.id === "profileImage"){
+                        window.location.href = "/channel";
+                    }
+                })
+            {% endif %}
+        </script>
+    </head>
+    <body>
+        <div class="navBar">
+            <div class="left">
+                <img src="../static/logo.png" alt="Menu Button" id="logoButton">
+            </div>
+            <div class="center">
+                <form method="post">{% csrf_token %}
+                    <input type="text" placeholder="Suche.." name="text">
+                    <input type="submit" value="Suche" name="search">
+                </form>
+            </div>
+            <div class="right">
+                {% if profile %}
+                    <img src="../static/profile.png" alt="Profile Picture" id="profileImage">
+                {% endif %}
+            </div>
+        </div>
+        {% if banner %}
+            <div class="channelBanner">
+                <p>{{channelName}}</p>
+            {% if not channelId %}
+                {% if request.user.is_authenticated %}
+                        <button onclick="location.href = '/logout';">Logout</button><br>
+            {% endif %}
+                    <button onclick="location.href = '/upload';" class="middleButton">Upload Video</button>
+            {% else %}
+                <form method="post">{% csrf_token %}
+                    {% if subscribed %}
+                    <input name="unsubscribe" type="submit" class="middleButton" value="Deabonnieren"/>
+                    {% else %}
+                    <input name="subscribe" type="submit" class="middleButton" value="Abonnieren"/>
+                    {% endif %}
+                </form>
+            {% endif %}
+            </div>
+        {% endif %}
+        <div class="profile" id="profile">
+            <form method="post">{% csrf_token %}
+                <div class="profileRow">
+                    Benutzername:
+                    <input type="text" name="username">
+                </div>
+                <div class="profileRow">
+                    Password:
+                    <input type="password" name="password">
+                </div>
+                <div class="profileRow">
+                    <input type="submit" name="login" value="Login">
+                </div>
+            </form>
+            <div class="profileRow">
+                Sie sind noch nicht registriert? <br>
+                <button onclick="window.location='/register';" >Registrieren</button>
+            </div>
+        </div>
+        {% if content %}
+            <div class="content">
+                {% for o in videos %}
+                    <div class="video">
+                        {% include "miniVideo.html" with id=o.id thumbnail=o.thumbnailPath title=o.title channel=o.channel.name%}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if register %}
+            <div class="register">
+            {{ message }}
+                <form method="post">{% csrf_token %}
+                    <p>Benutzername / Kanalname:</p>
+                    <input type="text" name="username">
+                    <p>E-Mail:</p>
+                    <input type="email" name="email">
+                    <p>Passwort:</p>
+                    <input type="password" name="password"><br><br>
+                    <input type="submit" name="register" value="Registrieren">
+                </form>
+            </div>
+        {% endif %}
+        {% if upload %}
+            <div class="upload">
+                <form method="post" enctype="multipart/form-data">{% csrf_token %}
+                    <table>
+                        {{ form }}
+                    </table>
+                    <br>
+                    <input type="submit" value="Hochladen">
+                </form>
+            </div>
+        {% endif %}
+    </body>
+    <script>
+        {% if loginError %}
+            openProfile();
+            window.alert('{{ loginErrorText }}');
+        {% endif %}
+    </script>
+</html>
